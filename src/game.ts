@@ -488,8 +488,16 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     mouse.y >= this.y && mouse.y < this.y + this.height && !selectedCard.isEmpty && mouse.y >= gridOffsetY) {
                     
                     if (selectedCard.isShovel) {
-                        ctx.fillStyle = 'rgba(244, 67, 54, 0.4)';
-                        ctx.fillRect(this.x, this.y, this.width, this.height);
+                        // 铲子模式：只在有植物的格子上显示红色警告
+                        const hasPlant = plants.some(p => p.x === this.x && p.y === this.y && !p.markedForDeletion);
+                        if (hasPlant) {
+                            ctx.fillStyle = 'rgba(244, 67, 54, 0.5)';
+                            ctx.fillRect(this.x, this.y, this.width, this.height);
+                            ctx.strokeStyle = '#d32f2f'; ctx.lineWidth = 3;
+                            ctx.setLineDash([5, 3]);
+                            ctx.strokeRect(this.x + 3, this.y + 3, this.width - 6, this.height - 6);
+                            ctx.setLineDash([]);
+                        }
                     } else if (colIndex === 0 || colIndex >= gridCols) {
                         // 推车区域和越界区域不可种植，显示禁止红叉
                         ctx.fillStyle = 'rgba(244, 67, 54, 0.4)';
@@ -1736,13 +1744,33 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
             if (gameState === 'mainMenu') {
                 drawMainMenuUI();
+                canvas.style.cursor = 'default';
             } else if (gameState === 'seedSelection') {
                 drawSeedSelectionUI();
+                canvas.style.cursor = 'default';
             } else if (gameState === 'playing') {
                 grids.forEach(grid => grid.draw());
                 handleGameObjects(dt);
                 drawUI();
                 handleGridClick();
+
+                // 铲子模式下光标切换
+                if (selectedCard.isShovel) {
+                    if (mouse.x !== undefined && mouse.y !== undefined && mouse.y > gridOffsetY) {
+                        const col = Math.floor(mouse.x / cellSize);
+                        const row = Math.floor((mouse.y - gridOffsetY) / cellSize);
+                        const gridX = col * cellSize;
+                        const gridY = row * cellSize + gridOffsetY;
+                        const hasPlant = plants.some(p => p.x === gridX && p.y === gridY && !p.markedForDeletion);
+                        canvas.style.cursor = hasPlant ? 'pointer' : 'not-allowed';
+                    } else {
+                        canvas.style.cursor = 'not-allowed';
+                    }
+                } else if (selectedCard.isEmpty) {
+                    canvas.style.cursor = 'default';
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                }
             } else if (gameState === 'paused') {
                 grids.forEach(grid => grid.draw());
                 plants.forEach(p => p.draw()); zombies.forEach(z => z.draw()); lawnmowers.forEach(lm => lm.draw());

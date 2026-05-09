@@ -32,7 +32,6 @@ canvas {
     max-height: 100%;
     aspect-ratio: 1366 / 800;
     display: block;
-    cursor: default;
 }
 
 .instructions {
