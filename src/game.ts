@@ -1221,65 +1221,36 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 const headWobble = this.isEating ? 0 : Math.sin(now * 0.006) * 3;
                 const bodyColor = this.slowTimer > 0 ? '#546e7a' : '#607d8b';
 
-                // 阴影
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.beginPath(); ctx.ellipse(0, 42, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
-
-                // 腿
-                const legSwing = this.isEating ? 0 : Math.sin(now * 0.008) * 5;
-                ctx.fillStyle = '#5a5a5a';
-                ctx.fillRect(-8, 22, 7, 16 + legSwing * 0.5);
-                ctx.fillRect(2, 22, 7, 16 - legSwing * 0.5);
-
                 // 身体
                 ctx.fillStyle = bodyColor; ctx.fillRect(-15, -10, 30, 50);
 
-                // ── 手臂：攻击时上下挥舞，行走时自然摆动 ──
-                const armSwing = this.isEating
-                    ? Math.sin(now * 0.015) * 45  // 攻击：快速大幅挥舞
-                    : Math.sin(now * 0.008) * 15; // 行走：自然小幅度摆动
-
-                ctx.fillStyle = bodyColor;
-                // 左臂
+                // 手臂：攻击时上下挥舞
+                const armAngle = this.isEating
+                    ? Math.sin(now * 0.015) * 35
+                    : Math.sin(now * 0.008) * 10;
+                ctx.fillStyle = '#78909c';
                 ctx.save();
-                ctx.translate(-14, 2);
-                ctx.rotate((-25 + armSwing) * Math.PI / 180);
-                ctx.fillRect(-5, 0, 10, 26);
-                // 手掌
-                ctx.fillStyle = '#9e9e9e';
-                ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.translate(-15, -2);
+                ctx.rotate((-0.5 + armAngle * Math.PI / 180));
+                ctx.fillRect(-4, 0, 8, 22);
                 ctx.restore();
-
-                // 右臂
                 ctx.save();
-                ctx.translate(14, 2);
-                ctx.rotate((25 - armSwing) * Math.PI / 180);
-                ctx.fillStyle = bodyColor;
-                ctx.fillRect(-5, 0, 10, 26);
-                ctx.fillStyle = '#9e9e9e';
-                ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.translate(15, -2);
+                ctx.rotate((0.5 - armAngle * Math.PI / 180));
+                ctx.fillRect(-4, 0, 8, 22);
                 ctx.restore();
 
                 // 头
                 ctx.fillStyle = this.slowTimer > 0 ? '#b2ebf2' : '#9e9e9e';
                 ctx.beginPath(); ctx.arc(0, -25 + headWobble, 20, 0, Math.PI * 2); ctx.fill();
-                // 眼白
                 ctx.fillStyle = '#fff';
                 ctx.beginPath(); ctx.arc(-8, -30 + headWobble, 5, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(8, -30 + headWobble, 5, 0, Math.PI * 2); ctx.fill();
-                // 瞳孔 (攻击时变红)
-                ctx.fillStyle = this.isEating ? '#d32f2f' : '#300';
+                ctx.fillStyle = '#300';
                 ctx.beginPath(); ctx.arc(-9, -30 + headWobble, 2, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(7, -30 + headWobble, 2, 0, Math.PI * 2); ctx.fill();
-                // 嘴 (攻击时张开更大)
                 ctx.fillStyle = '#4a3020';
-                ctx.beginPath();
-                if (this.isEating) {
-                    ctx.arc(0, -13 + headWobble, 6, 0, Math.PI);
-                } else {
-                    ctx.fillRect(-8, -15 + headWobble, 16, 5);
-                }
-                ctx.fill();
+                ctx.fillRect(-8, -15 + headWobble, 16, 5);
 
                 // 头盔
                 if (this.typeCode === 2 && this.hp > 150) {
