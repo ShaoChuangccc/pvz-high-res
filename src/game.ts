@@ -1,6 +1,11 @@
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
+        // Canvas roundRect 类型声明
+        interface CanvasRenderingContext2D {
+            roundRect(x: number, y: number, w: number, h: number, r: number): void;
+        }
+
         // 核心常量
         const cellSize = 100;
         const gridOffsetY = 100; // 顶部UI高度
@@ -105,7 +110,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         // 音效管理
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         const audioCtx = new AudioContext();
-        let globalVolume = 0.5;
+        let globalVolume = parseFloat(localStorage.getItem('pvz_volume') || '0.5');
 
         function playSound(type: string) {
             if (!audioCtx || globalVolume <= 0) return;
@@ -1638,6 +1643,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             ctx.fillStyle = '#fff'; ctx.fillText('-', minusBtn.x + 25, minusBtn.y + 28);
             if (mouse.clicked && mouse.x !== undefined && mouse.y !== undefined && mouse.x >= minusBtn.x && mouse.x <= minusBtn.x + minusBtn.w && mouse.y >= minusBtn.y && mouse.y <= minusBtn.y + minusBtn.h) {
                 globalVolume = Math.max(0, globalVolume - 0.1);
+                localStorage.setItem('pvz_volume', globalVolume.toString());
                 playSound('button'); mouse.clicked = false;
             }
 
@@ -1647,6 +1653,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             ctx.fillStyle = '#fff'; ctx.fillText('+', plusBtn.x + 25, plusBtn.y + 28);
             if (mouse.clicked && mouse.x !== undefined && mouse.y !== undefined && mouse.x >= plusBtn.x && mouse.x <= plusBtn.x + plusBtn.w && mouse.y >= plusBtn.y && mouse.y <= plusBtn.y + plusBtn.h) {
                 globalVolume = Math.min(1, globalVolume + 0.1);
+                localStorage.setItem('pvz_volume', globalVolume.toString());
                 playSound('button'); mouse.clicked = false;
             }
 
