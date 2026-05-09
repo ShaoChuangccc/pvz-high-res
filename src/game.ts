@@ -528,10 +528,8 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
             // 巨大波次提示 UI
             if (hugeWaveTimer > 0) {
-                ctx.fillStyle = `rgba(255, 0, 0, ${Math.abs(Math.sin(Date.now() * 0.003)) * 0.2})`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#ff5252'; ctx.font = 'bold 50px Inter'; ctx.textAlign = 'center';
-                ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+                ctx.fillStyle = '#ff1744'; ctx.font = 'bold 50px Inter'; ctx.textAlign = 'center';
+                ctx.shadowColor = '#000'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
                 ctx.fillText('一大波僵尸正在接近！', canvas.width / 2, canvas.height / 2);
                 ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
             }
