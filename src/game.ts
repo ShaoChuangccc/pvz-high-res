@@ -1219,40 +1219,90 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             draw() {
                 const cx = this.x + cellSize / 2; const cy = this.y + cellSize / 2;
                 ctx.save(); ctx.translate(cx, cy);
-                const wobble = this.isEating ? 0 : Math.sin(Date.now() * 0.006) * 3;
+                const now = Date.now();
+                const headWobble = this.isEating ? 0 : Math.sin(now * 0.006) * 3;
+                const bodyColor = this.slowTimer > 0 ? '#546e7a' : '#607d8b';
 
-                // 身体 (被减速时泛蓝)
-                ctx.fillStyle = this.slowTimer > 0 ? '#546e7a' : '#607d8b'; ctx.fillRect(-15, -10, 30, 50);
-                ctx.fillStyle = this.slowTimer > 0 ? '#78909c' : '#78909c'; ctx.fillRect(-25, this.isEating ? Math.sin(Date.now() * 0.03) * 5 : 0, 20, 10);
+                // 阴影
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath(); ctx.ellipse(0, 42, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+                // 腿
+                const legSwing = this.isEating ? 0 : Math.sin(now * 0.008) * 5;
+                ctx.fillStyle = '#5a5a5a';
+                ctx.fillRect(-8, 22, 7, 16 + legSwing * 0.5);
+                ctx.fillRect(2, 22, 7, 16 - legSwing * 0.5);
+
+                // 身体
+                ctx.fillStyle = bodyColor; ctx.fillRect(-15, -10, 30, 50);
+
+                // ── 手臂：攻击时上下挥舞，行走时自然摆动 ──
+                const armSwing = this.isEating
+                    ? Math.sin(now * 0.015) * 45  // 攻击：快速大幅挥舞
+                    : Math.sin(now * 0.008) * 15; // 行走：自然小幅度摆动
+
+                ctx.fillStyle = bodyColor;
+                // 左臂
+                ctx.save();
+                ctx.translate(-14, 2);
+                ctx.rotate((-25 + armSwing) * Math.PI / 180);
+                ctx.fillRect(-5, 0, 10, 26);
+                // 手掌
+                ctx.fillStyle = '#9e9e9e';
+                ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+
+                // 右臂
+                ctx.save();
+                ctx.translate(14, 2);
+                ctx.rotate((25 - armSwing) * Math.PI / 180);
+                ctx.fillStyle = bodyColor;
+                ctx.fillRect(-5, 0, 10, 26);
+                ctx.fillStyle = '#9e9e9e';
+                ctx.beginPath(); ctx.arc(0, 26, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
 
                 // 头
                 ctx.fillStyle = this.slowTimer > 0 ? '#b2ebf2' : '#9e9e9e';
-                ctx.beginPath(); ctx.arc(0, -25 + wobble, 20, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-8, -30 + wobble, 5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(8, -30 + wobble, 5, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-9, -30 + wobble, 2, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(7, -30 + wobble, 2, 0, Math.PI * 2); ctx.fill();
-                ctx.fillRect(-8, -15 + wobble, 16, 5);
+                ctx.beginPath(); ctx.arc(0, -25 + headWobble, 20, 0, Math.PI * 2); ctx.fill();
+                // 眼白
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(-8, -30 + headWobble, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(8, -30 + headWobble, 5, 0, Math.PI * 2); ctx.fill();
+                // 瞳孔 (攻击时变红)
+                ctx.fillStyle = this.isEating ? '#d32f2f' : '#300';
+                ctx.beginPath(); ctx.arc(-9, -30 + headWobble, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7, -30 + headWobble, 2, 0, Math.PI * 2); ctx.fill();
+                // 嘴 (攻击时张开更大)
+                ctx.fillStyle = '#4a3020';
+                ctx.beginPath();
+                if (this.isEating) {
+                    ctx.arc(0, -13 + headWobble, 6, 0, Math.PI);
+                } else {
+                    ctx.fillRect(-8, -15 + headWobble, 16, 5);
+                }
+                ctx.fill();
 
                 // 头盔
-                if (this.typeCode === 2 && this.hp > 150) { // 路障
-                    ctx.fillStyle = '#ff9800'; ctx.beginPath(); ctx.moveTo(0, -65 + wobble); ctx.lineTo(-20, -35 + wobble); ctx.lineTo(20, -35 + wobble); ctx.fill();
-                    ctx.fillStyle = '#fff'; ctx.fillRect(-12, -45 + wobble, 24, 5);
-                } else if (this.typeCode === 3 && this.hp > 150) { // 铁桶
-                    ctx.fillStyle = '#90a4ae'; ctx.beginPath(); ctx.moveTo(-15, -60 + wobble); ctx.lineTo(15, -60 + wobble); ctx.lineTo(20, -35 + wobble); ctx.lineTo(-20, -35 + wobble); ctx.fill();
-                    ctx.fillStyle = '#b0bec5'; ctx.fillRect(-20, -35 + wobble, 40, 5);
-                    ctx.fillStyle = '#d32f2f'; ctx.fillRect(0, -50 + wobble, 10, 10); // 假装有个红标
+                if (this.typeCode === 2 && this.hp > 150) {
+                    ctx.fillStyle = '#ff9800'; ctx.beginPath(); ctx.moveTo(0, -65 + headWobble); ctx.lineTo(-20, -35 + headWobble); ctx.lineTo(20, -35 + headWobble); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.fillRect(-12, -45 + headWobble, 24, 5);
+                } else if (this.typeCode === 3 && this.hp > 150) {
+                    ctx.fillStyle = '#90a4ae'; ctx.beginPath(); ctx.moveTo(-15, -60 + headWobble); ctx.lineTo(15, -60 + headWobble); ctx.lineTo(20, -35 + headWobble); ctx.lineTo(-20, -35 + headWobble); ctx.fill();
+                    ctx.fillStyle = '#b0bec5'; ctx.fillRect(-20, -35 + headWobble, 40, 5);
+                    ctx.fillStyle = '#d32f2f'; ctx.fillRect(0, -50 + headWobble, 10, 10);
                 }
 
                 // 铁门盾牌
                 if (this.typeCode === 4 && this.shieldHp > 0) {
                     ctx.save();
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; // 网格外框背景
-                    ctx.beginPath(); ctx.roundRect(-30, -50 + wobble, 15, 80, 4); ctx.fill();
-                    ctx.strokeStyle = '#9e9e9e'; ctx.lineWidth = 2; // 铁框
-                    ctx.strokeRect(-30, -50 + wobble, 15, 80);
-                    // 绘制网格
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    ctx.beginPath(); ctx.roundRect(-30, -50 + headWobble, 15, 80, 4); ctx.fill();
+                    ctx.strokeStyle = '#9e9e9e'; ctx.lineWidth = 2;
+                    ctx.strokeRect(-30, -50 + headWobble, 15, 80);
                     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-                    for(let i=1; i<=7; i++) { ctx.beginPath(); ctx.moveTo(-30, -50 + wobble + i*10); ctx.lineTo(-15, -50 + wobble + i*10); ctx.stroke(); }
-                    for(let i=1; i<=2; i++) { ctx.beginPath(); ctx.moveTo(-30 + i*5, -50 + wobble); ctx.lineTo(-30 + i*5, 30 + wobble); ctx.stroke(); }
+                    for(let i=1; i<=7; i++) { ctx.beginPath(); ctx.moveTo(-30, -50 + headWobble + i*10); ctx.lineTo(-15, -50 + headWobble + i*10); ctx.stroke(); }
+                    for(let i=1; i<=2; i++) { ctx.beginPath(); ctx.moveTo(-30 + i*5, -50 + headWobble); ctx.lineTo(-30 + i*5, 30 + headWobble); ctx.stroke(); }
                     ctx.restore();
                 }
 
