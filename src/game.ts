@@ -8,7 +8,6 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         const gridCols = 12;
 
         // 全局状态变量
-        let frame = 0;
         let sun = 75;
         let score = 0; // 当前击杀数
         let gameState = 'mainMenu'; // mainMenu, playing, gameOver
@@ -87,6 +86,8 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         let floatingTexts = [];
         let screenShake = 0;
         let menuParticles = [];
+        let sunSpawnAccum = 0;
+        let eatSoundAccum = 0;
 
         function updateMousePos(e) {
             const rect = canvas.getBoundingClientRect();
@@ -192,32 +193,31 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             }
         }
 
-        // 无尽模式不需要固定关卡配置
-        const sunSpawnInterval = 300;
+        const sunSpawnInterval = 18000; // 18s 天降阳光间隔
 
         const plantTemplates = [
-            { type: 'Sunflower', cost: 50, name: '向日葵', cd: 90 }, // 1.5s
-            { type: 'Peashooter', cost: 100, name: '豌豆', cd: 90 }, // 1.5s
-            { type: 'SnowPea', cost: 175, name: '寒冰', cd: 90 }, // 1.5s
-            { type: 'Wallnut', cost: 50, name: '坚果', cd: 900 }, // 15s
-            { type: 'PotatoMine', cost: 25, name: '土豆雷', cd: 600 }, // 10s
-            { type: 'CherryBomb', cost: 150, name: '樱桃', cd: 1500 }, // 25s
-            { type: 'Repeater', cost: 200, name: '双发', cd: 90 }, // 1.5s
-            { type: 'Squash', cost: 50, name: '窝瓜', cd: 900 }, // 15s
-            { type: 'Tallnut', cost: 125, name: '高坚果', cd: 900 }, // 15s
-            { type: 'Jalapeno', cost: 125, name: '辣椒', cd: 1500 }, // 25s
-            { type: 'Threepeater', cost: 325, name: '三线', cd: 90 }, // 1.5s
-            { type: 'Chomper', cost: 150, name: '大嘴花', cd: 450 }, // 7.5s
-            { type: 'PuffShroom', cost: 0, name: '小喷菇', cd: 450 }, // 7.5s
-            { type: 'Spikeweed', cost: 100, name: '地刺', cd: 450 }, // 7.5s
-            { type: 'SunShroom', cost: 25, name: '阳光菇', cd: 90 },
-            { type: 'FumeShroom', cost: 75, name: '大喷菇', cd: 90 },
-            { type: 'ScaredyShroom', cost: 25, name: '胆小菇', cd: 90 },
-            { type: 'IceShroom', cost: 75, name: '冰菇', cd: 1500 },
-            { type: 'Torchwood', cost: 175, name: '火炬树', cd: 90 },
-            { type: 'Garlic', cost: 50, name: '大蒜', cd: 900 },
-            { type: 'Starfruit', cost: 125, name: '杨桃', cd: 90 },
-            { type: 'SplitPea', cost: 125, name: '裂荚', cd: 90 }
+            { type: 'Sunflower', cost: 50, name: '向日葵', cd: 1500 },
+            { type: 'Peashooter', cost: 100, name: '豌豆', cd: 1500 },
+            { type: 'SnowPea', cost: 175, name: '寒冰', cd: 1500 },
+            { type: 'Wallnut', cost: 50, name: '坚果', cd: 15000 },
+            { type: 'PotatoMine', cost: 25, name: '土豆雷', cd: 10000 },
+            { type: 'CherryBomb', cost: 150, name: '樱桃', cd: 25000 },
+            { type: 'Repeater', cost: 200, name: '双发', cd: 1500 },
+            { type: 'Squash', cost: 50, name: '窝瓜', cd: 15000 },
+            { type: 'Tallnut', cost: 125, name: '高坚果', cd: 15000 },
+            { type: 'Jalapeno', cost: 125, name: '辣椒', cd: 25000 },
+            { type: 'Threepeater', cost: 325, name: '三线', cd: 1500 },
+            { type: 'Chomper', cost: 150, name: '大嘴花', cd: 7500 },
+            { type: 'PuffShroom', cost: 0, name: '小喷菇', cd: 7500 },
+            { type: 'Spikeweed', cost: 100, name: '地刺', cd: 7500 },
+            { type: 'SunShroom', cost: 25, name: '阳光菇', cd: 1500 },
+            { type: 'FumeShroom', cost: 75, name: '大喷菇', cd: 1500 },
+            { type: 'ScaredyShroom', cost: 25, name: '胆小菇', cd: 1500 },
+            { type: 'IceShroom', cost: 75, name: '冰菇', cd: 25000 },
+            { type: 'Torchwood', cost: 175, name: '火炬树', cd: 1500 },
+            { type: 'Garlic', cost: 50, name: '大蒜', cd: 15000 },
+            { type: 'Starfruit', cost: 125, name: '杨桃', cd: 1500 },
+            { type: 'SplitPea', cost: 125, name: '裂荚', cd: 1500 }
         ];
         
         let cards: { type: string, cost: number, name: string, cd: number, currentCd: number }[] = [];
@@ -515,7 +515,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
             // 巨大波次提示 UI
             if (hugeWaveTimer > 0) {
-                ctx.fillStyle = `rgba(255, 0, 0, ${Math.abs(Math.sin(frame * 0.05)) * 0.2})`;
+                ctx.fillStyle = `rgba(255, 0, 0, ${Math.abs(Math.sin(Date.now() * 0.003)) * 0.2})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#ff5252'; ctx.font = 'bold 50px Inter'; ctx.textAlign = 'center';
                 ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
@@ -565,7 +565,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     
                     // 显示冷却倒计时秒数
                     ctx.fillStyle = '#fff'; ctx.font = 'bold 20px Inter'; ctx.textAlign = 'center';
-                    ctx.fillText(Math.ceil(cards[i].currentCd / 60).toString(), cardX + cardW / 2, cardY + 45);
+                    ctx.fillText(Math.ceil(cards[i].currentCd / 1000).toString(), cardX + cardW / 2, cardY + 45);
                 }
 
                 if (mouse.clicked && mouse.x >= cardX && mouse.x <= cardX + cardW && mouse.y >= cardY && mouse.y <= cardY + cardH) {
@@ -670,14 +670,14 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             x: number; y: number; text: string; color: string; life: number; markedForDeletion: boolean;
             constructor(x: number, y: number, text: string, color = '#ffeb3b') {
                 this.x = x; this.y = y; this.text = text; this.color = color;
-                this.life = 40; this.markedForDeletion = false;
+                this.life = 667; this.markedForDeletion = false;
             }
-            update() {
-                this.y -= 1; this.life--;
+            update(dt: number) {
+                this.y -= 0.06 * dt; this.life -= dt;
                 if (this.life <= 0) this.markedForDeletion = true;
             }
             draw() {
-                ctx.save(); ctx.globalAlpha = this.life / 40;
+                ctx.save(); ctx.globalAlpha = Math.max(0, this.life / 667);
                 ctx.fillStyle = this.color; ctx.font = 'bold 20px Inter'; ctx.textAlign = 'center';
                 ctx.fillText(this.text, this.x, this.y);
                 ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeText(this.text, this.x, this.y);
@@ -693,12 +693,11 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 this.radius = value === 15 ? 16 : 22; this.markedForDeletion = false;
                 this.lifeTimer = 0; this.isCollected = false;
             }
-            update() {
+            update(dt: number) {
                 if (this.isCollected) {
-                    // 飞向左上角阳光槽的贝塞尔动画
                     const destX = 40; const destY = 50;
-                    this.x += (destX - this.x) * 0.1;
-                    this.y += (destY - this.y) * 0.1;
+                    this.x += (destX - this.x) * 6 * dt / 1000;
+                    this.y += (destY - this.y) * 6 * dt / 1000;
                     if (Math.abs(this.x - destX) < 5 && Math.abs(this.y - destY) < 5) {
                         sun += this.value; this.markedForDeletion = true;
                         floatingTexts.push(new FloatingText(destX + 20, destY + 20, `+${this.value}`));
@@ -706,10 +705,10 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     return;
                 }
 
-                if (this.y < this.targetY) this.y += 0.8; // 减缓下落
+                if (this.y < this.targetY) this.y += 0.048 * dt;
                 else {
-                    this.lifeTimer++;
-                    if (this.lifeTimer > 800) this.markedForDeletion = true; // 存活更久
+                    this.lifeTimer += dt;
+                    if (this.lifeTimer > 13333) this.markedForDeletion = true;
                 }
 
                 if (mouse.clicked && mouse.x !== undefined && mouse.y !== undefined && Math.hypot(mouse.x - this.x, mouse.y - this.y) < this.radius + 15) {
@@ -717,8 +716,9 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 }
             }
             draw() {
-                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(frame * 0.01);
-                const alpha = this.isCollected ? 1 : Math.max(0.2, 1 - this.lifeTimer / 800);
+                const now = Date.now();
+                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(now * 0.0006);
+                const alpha = this.isCollected ? 1 : Math.max(0.2, 1 - this.lifeTimer / 13333);
                 for (let i = 0; i < 8; i++) {
                     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(i * Math.PI / 4) * 28, Math.sin(i * Math.PI / 4) * 28);
                     ctx.strokeStyle = `rgba(255, 235, 59, ${alpha})`; ctx.lineWidth = 3; ctx.stroke();
@@ -745,12 +745,13 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 if (type === 'fire') this.damage = 40;
                 if (type === 'star') { this.damage = 20; this.width = 20; this.height = 20; }
             }
-            update() {
+            update(dt: number) {
                 if (this.isThreepeater && this.x > this.spawnX + cellSize) {
                     this.vy = this.targetVy;
                     this.isThreepeater = false;
                 }
-                this.x += this.vx; this.y += this.vy;
+                this.x += this.vx * dt / 16.67;
+                this.y += this.vy * dt / 16.67;
                 if (this.x > canvas.width || this.x < 0 || this.y < 0 || this.y > canvas.height) this.markedForDeletion = true;
             }
             draw() {
@@ -772,12 +773,12 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             x: number; y: number; radius: number; maxRadius: number; life: number; markedForDeletion: boolean; isSquash: boolean; isFume: boolean; type: string; particles: any[];
             constructor(x: number, y: number, type = 'normal') {
                 this.x = x; this.y = y; this.radius = 10; this.maxRadius = cellSize * 1.5;
-                this.life = 30; this.markedForDeletion = false;
+                this.life = 500; this.markedForDeletion = false;
                 this.type = type;
                 this.isSquash = type === 'squash'; this.isFume = type === 'fume';
                 this.particles = [];
 
-                if (this.isFume) { this.radius = 15; this.maxRadius = 30; this.life = 15; }
+                if (this.isFume) { this.radius = 15; this.maxRadius = 30; this.life = 250; }
                 else if (this.isSquash) { screenShake = 15; this.maxRadius = cellSize; }
                 else if (type === 'cherry') {
                     screenShake = 35; this.maxRadius = cellSize * 2;
@@ -811,16 +812,16 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     }
                 }
             }
-            update() {
-                this.radius += (this.maxRadius - this.radius) * 0.2;
-                this.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.5; /* gravity */ });
-                this.life--;
+            update(dt: number) {
+                this.radius += (this.maxRadius - this.radius) * 0.2 * dt / 16.67;
+                this.particles.forEach(p => { p.x += p.vx * dt / 16.67; p.y += p.vy * dt / 16.67; p.vy += 0.03 * dt; /* gravity */ });
+                this.life -= dt;
                 if (this.life <= 0) this.markedForDeletion = true;
             }
             draw() {
-                ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = this.life / 30;
+                ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = Math.max(0, this.life / 500);
                 if (this.isFume) {
-                    ctx.fillStyle = 'rgba(126, 87, 194, ' + (this.life/15) + ')';
+                    ctx.fillStyle = 'rgba(126, 87, 194, ' + (this.life/250) + ')';
                     ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
                 } else if (this.isSquash) {
                     // 窝瓜砸地特效
@@ -859,9 +860,9 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 this.width = 60; this.height = 60;
                 this.isActive = false; this.markedForDeletion = false; this.speed = 12;
             }
-            update() {
+            update(dt: number) {
                 if (this.isActive) {
-                    this.x += this.speed;
+                    this.x += this.speed * dt / 16.67;
                     if (this.x > canvas.width + 50) this.markedForDeletion = true;
                 } else {
                     let hitZombie = zombies.find(z => !z.markedForDeletion && z.y === this.y && z.x <= this.x + this.width && z.x > 0);
@@ -886,9 +887,11 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
         class Plant {
             x: number; y: number; width: number; height: number; type: string; timer: number; markedForDeletion: boolean; hp: number; maxHp: number; isArmed: boolean; secondShotTimer: number; isSquashing: boolean; squashTimer: number; isChewing: boolean; chewTimer: number;
+            shootTimer: number; sunTimer: number; spikeweedTimer: number;
             constructor(x: number, y: number, type: string) {
                 this.x = x; this.y = y; this.width = cellSize - 20; this.height = cellSize - 20;
                 this.type = type; this.timer = 0; this.markedForDeletion = false;
+                this.shootTimer = 0; this.sunTimer = 0; this.spikeweedTimer = 0;
 
                 const stats: Record<string, {hp: number}> = {
                     'Peashooter': { hp: 100 }, 'SnowPea': { hp: 100 }, 'Sunflower': { hp: 100 },
@@ -901,30 +904,33 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     'Starfruit': { hp: 100 }, 'SplitPea': { hp: 100 }
                 };
                 this.hp = stats[type].hp; this.maxHp = this.hp;
-                this.isArmed = false; // For Potato Mine
+                this.isArmed = false;
                 this.secondShotTimer = 0;
                 this.isSquashing = false;
                 this.squashTimer = 0;
                 this.isChewing = false;
                 this.chewTimer = 0;
             }
-            update() {
-                this.timer++;
+            update(dt: number) {
+                this.timer += dt;
                 const cx = this.x + cellSize / 2; const cy = this.y + cellSize / 2;
 
                 if (this.type === 'Peashooter' || this.type === 'SnowPea' || this.type === 'Repeater') {
-                    if (this.timer % 100 === 0) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667) {
+                        this.shootTimer -= 1667;
                         if (zombies.some(z => z.y === this.y && z.x > this.x)) {
                             bullets.push(new Bullet(this.x + this.width, this.y + this.height / 2, 6, 0, this.type === 'SnowPea' ? 'snow' : 'normal'));
                             playSound('shoot');
                             if (this.type === 'Repeater') {
-                                this.secondShotTimer = 15;
+                                this.secondShotTimer = 250;
                             }
                         }
                     }
                     if (this.type === 'Repeater' && this.secondShotTimer > 0) {
-                        this.secondShotTimer--;
-                        if (this.secondShotTimer === 0) {
+                        this.secondShotTimer -= dt;
+                        if (this.secondShotTimer <= 0) {
+                            this.secondShotTimer = 0;
                             if (zombies.some(z => z.y === this.y && z.x > this.x)) {
                                 bullets.push(new Bullet(this.x + this.width, this.y + this.height / 2, 6, 0, 'normal'));
                                 playSound('shoot');
@@ -932,29 +938,32 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         }
                     }
                 } else if (this.type === 'Sunflower' || this.type === 'SunShroom') {
-                    if (this.timer % (this.type === 'SunShroom' ? 500 : 600) === 0) {
+                    this.sunTimer += dt;
+                    const interval = this.type === 'SunShroom' ? 8333 : 10000;
+                    if (this.sunTimer >= interval) {
+                        this.sunTimer -= interval;
                         suns.push(new Sun(cx + (Math.random() * 40 - 20), this.y, this.y + 20, this.type === 'SunShroom' ? 15 : 25));
                     }
                 } else if (this.type === 'PotatoMine') {
-                    if (this.timer > 600) this.isArmed = true; // 10秒后激活 (假设60fps)
+                    if (this.timer > 10000) this.isArmed = true;
                     if (this.isArmed) {
                         if (zombies.some(z => z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 40)) {
                             explosions.push(new Explosion(cx, cy));
                             playSound('explosion');
-                            zombies.forEach(z => { 
-                                if (z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 80) { 
+                            zombies.forEach(z => {
+                                if (z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 80) {
                                     if(z.hp > 0) {
-                                        z.hp = 0; 
+                                        z.hp = 0;
                                         z.markedForDeletion = true;
                                         score++;
                                     }
-                                } 
+                                }
                             });
                             this.hp = 0; this.markedForDeletion = true;
                         }
                     }
                 } else if (this.type === 'CherryBomb') {
-                    if (this.timer > 60) { // 1秒后引爆
+                    if (this.timer > 1000) {
                         explosions.push(new Explosion(cx, cy, 'cherry'));
                         playSound('explosion');
                         zombies.forEach(z => {
@@ -971,34 +980,38 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 } else if (this.type === 'Squash') {
                     if (!this.isSquashing && zombies.some(z => z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 60)) {
                         this.isSquashing = true;
-                        this.squashTimer = 40;
+                        this.squashTimer = 667;
                     }
                     if (this.isSquashing) {
-                        this.squashTimer--;
+                        this.squashTimer -= dt;
                         if (this.squashTimer <= 0) {
-                            explosions.push(new Explosion(cx, cy, 'squash')); // 使用'squash'类型
+                            explosions.push(new Explosion(cx, cy, 'squash'));
                             playSound('explosion');
-                            zombies.forEach(z => { 
-                                if (z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 80) { 
+                            zombies.forEach(z => {
+                                if (z.y === this.y && Math.abs(z.x + z.width / 2 - cx) < 80) {
                                     if(z.hp > 0) {
-                                        z.hp = 0; 
+                                        z.hp = 0;
                                         z.markedForDeletion = true;
                                         score++;
                                     }
-                                } 
+                                }
                             });
                             this.hp = 0; this.markedForDeletion = true;
                         }
                     }
                 } else if (this.type === 'PuffShroom') {
-                    if (this.timer % 100 === 0) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667) {
+                        this.shootTimer -= 1667;
                         if (zombies.some(z => z.y === this.y && z.x > this.x && z.x - this.x < cellSize * 3.5)) {
                             bullets.push(new Bullet(this.x + this.width, this.y + this.height / 2, 6, 0, 'normal'));
                             playSound('shoot');
                         }
                     }
                 } else if (this.type === 'FumeShroom') {
-                    if (this.timer % 100 === 0 && zombies.some(z => z.y === this.y && z.x > this.x && z.x - this.x < cellSize * 4)) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667 && zombies.some(z => z.y === this.y && z.x > this.x && z.x - this.x < cellSize * 4)) {
+                        this.shootTimer -= 1667;
                         playSound('shoot');
                         let hitAny = false;
                         zombies.forEach(z => {
@@ -1012,9 +1025,13 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     }
                 } else if (this.type === 'ScaredyShroom') {
                     const isScared = zombies.some(z => Math.hypot(z.x + z.width/2 - cx, z.y + z.height/2 - cy) < 150 && z.hp > 0 && !z.markedForDeletion);
-                    if (!isScared && this.timer % 100 === 0 && zombies.some(z => z.y === this.y && z.x > this.x)) {
-                        bullets.push(new Bullet(this.x + this.width, this.y + this.height / 2, 6, 0, 'normal'));
-                        playSound('shoot');
+                    if (!isScared) {
+                        this.shootTimer += dt;
+                        if (this.shootTimer >= 1667 && zombies.some(z => z.y === this.y && z.x > this.x)) {
+                            this.shootTimer -= 1667;
+                            bullets.push(new Bullet(this.x + this.width, this.y + this.height / 2, 6, 0, 'normal'));
+                            playSound('shoot');
+                        }
                     }
                 } else if (this.type === 'Chomper') {
                     if (!this.isChewing) {
@@ -1022,15 +1039,17 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         if (target) {
                             target.hp = 0; target.markedForDeletion = true; score++;
                             this.isChewing = true;
-                            this.chewTimer = 2400; // 40s
+                            this.chewTimer = 40000;
                             playSound('chomp');
                         }
                     } else {
-                        this.chewTimer--;
+                        this.chewTimer -= dt;
                         if (this.chewTimer <= 0) this.isChewing = false;
                     }
                 } else if (this.type === 'Spikeweed') {
-                    if (this.timer % 30 === 0) {
+                    this.spikeweedTimer += dt;
+                    if (this.spikeweedTimer >= 500) {
+                        this.spikeweedTimer -= 500;
                         zombies.forEach(z => {
                             if (z.y === this.y && z.x < cx + cellSize/2 && z.x + z.width > cx - cellSize/2 && !z.markedForDeletion) {
                                 z.hp -= 5;
@@ -1039,7 +1058,8 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         });
                     }
                 } else if (this.type === 'Threepeater') {
-                    if (this.timer % 100 === 0) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667) {
                         let shouldShoot = false;
                         for (let r = -1; r <= 1; r++) {
                             const targetY = this.y + r * cellSize;
@@ -1048,12 +1068,11 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                             }
                         }
                         if (shouldShoot) {
+                            this.shootTimer -= 1667;
                             for (let r = -1; r <= 1; r++) {
                                 const targetY = this.y + r * cellSize;
                                 if (targetY >= gridOffsetY && targetY < gridOffsetY + gridRows * cellSize) {
-                                    // 传入目标垂直速度和特殊标志，vy会在飞行1格后变为 (r * cellSize / (cellSize/6)) 对应的分量
-                                    // 我们需要计算出让它飞到上下格的 vy
-                                    const vSpeed = (r * cellSize) / (cellSize / 6); 
+                                    const vSpeed = (r * cellSize) / (cellSize / 6);
                                     bullets.push(new Bullet(this.x + this.width, cy, 6, vSpeed, 'normal', true));
                                 }
                             }
@@ -1061,10 +1080,10 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         }
                     }
                 } else if (this.type === 'IceShroom') {
-                    if (this.timer > 30) {
+                    if (this.timer > 500) {
                         playSound('explosion');
-                        explosions.push(new Explosion(cx, cy, 'fume')); // 借用fume的视觉效果表示全屏震波
-                        zombies.forEach(z => { z.slowTimer = 600; z.hp -= 10; if(z.hp<=0){z.hp=0; z.markedForDeletion=true;score++;} });
+                        explosions.push(new Explosion(cx, cy, 'fume'));
+                        zombies.forEach(z => { z.slowTimer = 10000; z.hp -= 10; if(z.hp<=0){z.hp=0; z.markedForDeletion=true;score++;} });
                         this.hp = 0; this.markedForDeletion = true;
                     }
                 } else if (this.type === 'Torchwood') {
@@ -1076,7 +1095,9 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         }
                     });
                 } else if (this.type === 'Starfruit') {
-                    if (this.timer % 100 === 0 && zombies.some(z => z.hp > 0 && !z.markedForDeletion)) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667 && zombies.some(z => z.hp > 0 && !z.markedForDeletion)) {
+                        this.shootTimer -= 1667;
                         bullets.push(new Bullet(cx, cy, 0, -6, 'star'));
                         bullets.push(new Bullet(cx, cy, 0, 6, 'star'));
                         bullets.push(new Bullet(cx, cy, -6, 0, 'star'));
@@ -1085,25 +1106,27 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         playSound('shoot');
                     }
                 } else if (this.type === 'SplitPea') {
-                    if (this.timer % 100 === 0) {
+                    this.shootTimer += dt;
+                    if (this.shootTimer >= 1667) {
                         if (zombies.some(z => z.y === this.y && z.x > this.x)) {
                             bullets.push(new Bullet(this.x + this.width, cy, 6, 0, 'normal'));
                             playSound('shoot');
                         }
                         if (zombies.some(z => z.y === this.y && z.x < this.x)) {
                             bullets.push(new Bullet(this.x, cy, -6, 0, 'normal'));
-                            if (this.timer % 200 === 0) this.secondShotTimer = 15;
+                            this.shootTimer -= 1667;
+                            if (this.secondShotTimer <= 0) this.secondShotTimer = 250;
                         }
                     }
                     if (this.secondShotTimer > 0) {
-                        this.secondShotTimer--;
-                        if (this.secondShotTimer === 0 && zombies.some(z => z.y === this.y && z.x < this.x)) {
+                        this.secondShotTimer -= dt;
+                        if (this.secondShotTimer <= 0 && zombies.some(z => z.y === this.y && z.x < this.x)) {
                             bullets.push(new Bullet(this.x, cy, -6, 0, 'normal'));
                             playSound('shoot');
                         }
                     }
                 } else if (this.type === 'Jalapeno') {
-                    if (this.timer > 45) { // 0.75秒后起爆
+                    if (this.timer > 750) {
                         for (let lx = 0; lx < canvas.width; lx += cellSize) {
                             explosions.push(new Explosion(lx + cellSize / 2, cy, 'fire_row'));
                         }
@@ -1123,7 +1146,8 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 ctx.save();
                 ctx.translate(cx, cy);
                 // 生动的呼吸动画 (Breathing Animation)
-                const breathePhase = this.timer * 0.1;
+                const now = Date.now();
+                const breathePhase = now * 0.006;
                 const scaleY = 1 + Math.sin(breathePhase) * 0.05;
                 const scaleX = 1 - Math.sin(breathePhase) * 0.02;
                 
@@ -1135,15 +1159,15 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 if (this.type === 'PotatoMine') {
                     plantIcons[this.type](0, 0, 1.2, 1, this.isArmed);
                 } else {
-                    const wobble = ((this.type === 'CherryBomb' || this.type === 'Squash') && this.timer > 40 && !this.isSquashing) ? Math.sin(this.timer * 0.5) * 5 : 0;
+                    const wobble = ((this.type === 'CherryBomb' || this.type === 'Squash') && this.timer > 667 && !this.isSquashing) ? Math.sin(Date.now() * 0.03) * 5 : 0;
                     if (this.type === 'Squash' && this.isSquashing) {
-                        const jumpProgress = 1 - (this.squashTimer / 40);
+                        const jumpProgress = 1 - (this.squashTimer / 667);
                         const jumpHeight = Math.sin(jumpProgress * Math.PI) * 80;
                         ctx.translate(0, -jumpHeight);
                         ctx.scale(1 + jumpProgress*0.1, 1 - jumpProgress*0.1);
                     }
                     if (this.type === 'Chomper' && this.isChewing) {
-                        const chewWobble = Math.sin(this.timer * 0.3) * 5;
+                        const chewWobble = Math.sin(Date.now() * 0.018) * 5;
                         ctx.translate(0, chewWobble);
                     }
                     plantIcons[this.type](wobble, 0, 1.2);
@@ -1169,25 +1193,24 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 this.damage = 0.3; this.markedForDeletion = false; this.isEating = false;
                 this.slowTimer = 0;
             }
-            update() {
-                // 冰冻减速逻辑
+            update(dt: number) {
                 if (this.slowTimer > 0) {
-                    this.movement = this.speed * 0.5; this.slowTimer--;
+                    this.movement = this.speed * 0.5; this.slowTimer -= dt;
                 } else {
                     this.movement = this.speed;
                 }
 
-                if (!this.isEating) this.x -= this.movement;
+                if (!this.isEating) this.x -= this.movement * dt / 16.67;
                 if (this.x < 0) { gameState = 'gameOver'; }
             }
             draw() {
                 const cx = this.x + cellSize / 2; const cy = this.y + cellSize / 2;
                 ctx.save(); ctx.translate(cx, cy);
-                const wobble = this.isEating ? 0 : Math.sin(frame * 0.1) * 3;
+                const wobble = this.isEating ? 0 : Math.sin(Date.now() * 0.006) * 3;
 
                 // 身体 (被减速时泛蓝)
                 ctx.fillStyle = this.slowTimer > 0 ? '#546e7a' : '#607d8b'; ctx.fillRect(-15, -10, 30, 50);
-                ctx.fillStyle = this.slowTimer > 0 ? '#78909c' : '#78909c'; ctx.fillRect(-25, this.isEating ? Math.sin(frame * 0.5) * 5 : 0, 20, 10);
+                ctx.fillStyle = this.slowTimer > 0 ? '#78909c' : '#78909c'; ctx.fillRect(-25, this.isEating ? Math.sin(Date.now() * 0.03) * 5 : 0, 20, 10);
 
                 // 头
                 ctx.fillStyle = this.slowTimer > 0 ? '#b2ebf2' : '#9e9e9e';
@@ -1224,43 +1247,41 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             }
         }
 
-        function handleGameObjects() {
+        function handleGameObjects(dt: number) {
             // 系统状态更新 (CD)
-            cards.forEach(c => { if (c.currentCd > 0) c.currentCd--; });
-            if (hugeWaveTimer > 0) hugeWaveTimer--;
+            cards.forEach(c => { if (c.currentCd > 0) c.currentCd = Math.max(0, c.currentCd - dt); });
+            if (hugeWaveTimer > 0) hugeWaveTimer = Math.max(0, hugeWaveTimer - dt);
 
             // 剧情生成器：打完一波等5秒出下一波
             if (zombiesToSpawn === 0 && zombies.length === 0) {
                 if (!waveCompleted) {
                     waveCompleted = true;
-                    waveTimer = 300; // 5秒间隔
+                    waveTimer = 5000; // 5秒间隔
                 }
             }
 
             if (waveCompleted) {
-                waveTimer--;
+                waveTimer -= dt;
                 if (waveTimer <= 0) {
                     waveCompleted = false;
                     currentWave++;
-                    
-                    // 每一波比上一波多。第一波 5 个。
+
                     if (currentWave === 1) {
                         zombiesToSpawnTotal = 5;
                     } else {
-                        zombiesToSpawnTotal = 5 + Math.floor((currentWave - 1) * 3); // 增量逐渐增加
+                        zombiesToSpawnTotal = 5 + Math.floor((currentWave - 1) * 3);
                     }
                     zombiesToSpawn = zombiesToSpawnTotal;
-                    
-                    hugeWaveTimer = 180; // 大波次提示
+
+                    hugeWaveTimer = 3000; // 3秒大波次提示
                 }
             }
 
             if (zombiesToSpawn > 0 && !waveCompleted) {
-                spawnDelayTimer--;
+                spawnDelayTimer -= dt;
                 if (spawnDelayTimer <= 0) {
-                    // "两边少，中间多" 逻辑
-                    const rowWeights = [1, 3, 5, 6, 5, 3, 1]; // 权重总和 24
-                    let rand = Math.random() * 24; 
+                    const rowWeights = [1, 3, 5, 6, 5, 3, 1];
+                    let rand = Math.random() * 24;
                     let randomRow = 0;
                     for (let i = 0; i < rowWeights.length; i++) {
                         if (rand < rowWeights[i]) { randomRow = i; break; }
@@ -1270,49 +1291,53 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     let type = 1;
                     if (currentWave > 2) type = Math.random() < 0.7 ? 1 : 2;
                     if (currentWave > 5) type = Math.random() < 0.5 ? 2 : (Math.random() < 0.5 ? 3 : 4);
-                    if (currentWave > 10) type = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 3 : 4); 
+                    if (currentWave > 10) type = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 3 : 4);
 
                     zombies.push(new Zombie(randomRow * cellSize + gridOffsetY, type));
                     zombiesToSpawn--;
-                    
-                    // 出怪减慢: 1~2.5秒 出一只
-                    spawnDelayTimer = 60 + Math.random() * 90; 
+
+                    spawnDelayTimer = 1000 + Math.random() * 1500; // 1~2.5秒出一只
                 }
             }
 
             // 天降阳光: 动态掉落，后期变慢
-            const currentSunInterval = sunSpawnInterval + Math.min(600, currentWave * 40); 
-            if (frame % Math.floor(currentSunInterval) === 0) {
+            const currentSunInterval = sunSpawnInterval + Math.min(10000, currentWave * 667);
+            sunSpawnAccum += dt;
+            if (sunSpawnAccum >= currentSunInterval) {
+                sunSpawnAccum -= currentSunInterval;
                 suns.push(new Sun(Math.random() * (canvas.width - 150) + 125, -50, Math.random() * 300 + gridOffsetY + 50));
             }
 
             // 更新绘制所有实体
-            [...plants, ...bullets, ...zombies, ...suns, ...explosions, ...lawnmowers, ...floatingTexts].forEach(obj => {
-                obj.update(); obj.draw();
-                if (obj instanceof Zombie) obj.isEating = false;
-            });
+            plants.forEach(p => { p.update(dt); p.draw(); });
+            bullets.forEach(b => { b.update(dt); b.draw(); });
+            zombies.forEach(z => { z.update(dt); z.isEating = false; z.draw(); });
+            suns.forEach(s => { s.update(dt); s.draw(); });
+            explosions.forEach(e => { e.update(dt); e.draw(); });
+            lawnmowers.forEach(lm => { lm.update(dt); lm.draw(); });
+            floatingTexts.forEach(ft => { ft.update(dt); ft.draw(); });
 
             // 碰撞系统
             let someoneIsEating = false;
             for (let i = 0; i < zombies.length; i++) {
                 const z = zombies[i];
-                if (z.markedForDeletion) continue; // 先行过滤：不要让尸体参与后续判定
-                
+                if (z.markedForDeletion) continue;
+
                 // 僵尸吃植物
                 for (let j = 0; j < plants.length; j++) {
                     const p = plants[j];
-                    if (p.type === 'Spikeweed') continue; // 僵尸直接踩过地刺，不吃
+                    if (p.type === 'Spikeweed') continue;
                     if (z.x < p.x + p.width && z.x + z.width > p.x && z.y === p.y && p.type !== 'CherryBomb' && p.type !== 'Jalapeno' && !(p.type === 'PotatoMine' && p.isArmed)) {
                         z.movement = 0; z.isEating = true; p.hp -= z.damage;
                         someoneIsEating = true;
-                        
+
                         if (p.type === 'Garlic') {
                             const direction = Math.random() < 0.5 ? 1 : -1;
                             let newY = z.y + direction * cellSize;
                             if (newY < gridOffsetY) newY = z.y + cellSize;
                             else if (newY >= gridOffsetY + gridRows * cellSize) newY = z.y - cellSize;
                             z.y = newY;
-                            z.x += 10; // push slightly right to prevent instant re-eating
+                            z.x += 10;
                             z.isEating = false;
                         }
 
@@ -1323,16 +1348,16 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 // 子弹打僵尸
                 for (let k = 0; k < bullets.length; k++) {
                     const b = bullets[k];
-                    if (b.markedForDeletion) continue; // 优化：跳过已引爆的子弹
+                    if (b.markedForDeletion) continue;
                     if (b.x < z.x + z.width && b.x + b.width > z.x && b.y > z.y && b.y < z.y + cellSize) {
                         b.markedForDeletion = true;
                         let actualDamage = b.damage;
                         let floatingColor = '#ff5252';
                         let shieldBlocked = false;
-                        
+
                         if (z.shieldHp > 0) {
                             shieldBlocked = true;
-                            floatingColor = '#e0e0e0'; // 打在铁门上显示灰白伤害
+                            floatingColor = '#e0e0e0';
                             if (z.shieldHp >= actualDamage) {
                                 z.shieldHp -= actualDamage;
                                 actualDamage = 0;
@@ -1343,10 +1368,10 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         }
                         z.hp -= actualDamage;
                         playSound(shieldBlocked ? 'hit_shield' : 'hit');
-                        
+
                         floatingTexts.push(new FloatingText(z.x + z.width / 2 + (Math.random() * 20 - 10), z.y + 20 + (Math.random() * 10 - 5), `-${b.damage}`, floatingColor));
-                        if (b.type === 'snow' && !shieldBlocked) z.slowTimer = 180;
-                        if (b.type === 'fire') z.slowTimer = 0; // 火球解冻
+                        if (b.type === 'snow' && !shieldBlocked) z.slowTimer = 3000; // 3秒减速
+                        if (b.type === 'fire') z.slowTimer = 0;
                         if (z.hp <= 0 && !z.markedForDeletion) {
                             z.markedForDeletion = true; score++;
                         }
@@ -1354,7 +1379,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 }
 
                 // 小推车秒杀
-                if (z.markedForDeletion) continue; // 如果已经被上一环（比如子弹）击杀，跳过防止被推车鞭尸双倍计分
+                if (z.markedForDeletion) continue;
 
                 for (let m = 0; m < lawnmowers.length; m++) {
                     const lm = lawnmowers[m];
@@ -1366,24 +1391,18 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 }
             }
 
-            // 内存回收优化：停止给浏览器的 GC (垃圾回收) 增加业障
-            function cleanup(arr) {
-                for (let i = arr.length - 1; i >= 0; i--) {
-                    if (arr[i].markedForDeletion) {
-                        arr.splice(i, 1);
-                    }
-                }
-            }
-            
-            cleanup(plants);
-            cleanup(zombies);
-            cleanup(bullets);
-            cleanup(suns);
-            cleanup(explosions);
-            cleanup(lawnmowers);
-            cleanup(floatingTexts);
-            
-            if (someoneIsEating && frame % 45 === 0) {
+            // 内存回收：用 filter 替代 splice
+            plants = plants.filter(p => !p.markedForDeletion);
+            zombies = zombies.filter(z => !z.markedForDeletion);
+            bullets = bullets.filter(b => !b.markedForDeletion);
+            suns = suns.filter(s => !s.markedForDeletion);
+            explosions = explosions.filter(e => !e.markedForDeletion);
+            lawnmowers = lawnmowers.filter(lm => !lm.markedForDeletion);
+            floatingTexts = floatingTexts.filter(ft => !ft.markedForDeletion);
+
+            eatSoundAccum += dt;
+            if (someoneIsEating && eatSoundAccum >= 750) {
+                eatSoundAccum = 0;
                 playSound('eat');
             }
         }
@@ -1423,9 +1442,10 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         }
 
         function initGame() {
-            frame = 0; sun = 75; score = 0; currentWave = 0; 
-            waveTimer = 600; waveCompleted = true; // 10秒准备后出第一波
+            sun = 75; score = 0; currentWave = 0;
+            waveTimer = 10000; waveCompleted = true;
             hugeWaveTriggered = false; hugeWaveTimer = 0; zombiesToSpawn = 0; zombiesToSpawnTotal = 0; spawnDelayTimer = 0;
+            sunSpawnAccum = 0; eatSoundAccum = 0;
             grids = []; plants = []; zombies = []; bullets = []; suns = []; explosions = []; lawnmowers = []; floatingTexts = [];
             cards.forEach(c => c.currentCd = 0);
 
@@ -1445,7 +1465,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(frame * 0.003); // 缓慢旋转
+            ctx.rotate(Date.now() * 0.00018);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
             for (let i = 0; i < 12; i++) {
                 ctx.beginPath();
@@ -1480,7 +1500,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             menuParticles = menuParticles.filter(p => p.life > 0);
 
             // 2. 漂浮的标题
-            const titleYOffset = Math.sin(frame * 0.04) * 10;
+            const titleYOffset = Math.sin(Date.now() * 0.0024) * 10;
             ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 8;
             ctx.fillStyle = '#fff'; ctx.font = '900 75px Inter'; ctx.textAlign = 'center';
             ctx.fillText('植物大战僵尸', canvas.width / 2, 140 + titleYOffset);
@@ -1495,7 +1515,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
             // 3. 开始游戏大按钮
             const baseBtnW = 280; const baseBtnH = 70;
             const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2 + 60 + Math.sin(frame * 0.05) * 6;
+            const centerY = canvas.height / 2 + 60 + Math.sin(Date.now() * 0.003) * 6;
             const isHover = mouse.x && mouse.y && mouse.x >= centerX - baseBtnW/2 && mouse.x <= centerX + baseBtnW/2 && mouse.y >= centerY - baseBtnH/2 && mouse.y <= centerY + baseBtnH/2;
             const scale = isHover ? 1.05 : 1;
             const btnW = baseBtnW * scale; const btnH = baseBtnH * scale;
@@ -1687,56 +1707,53 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
         }
 
         let lastTime = 0;
-        const fpsInterval = 1000 / 60;
 
-        function animate(currentTime) {
+        function animate(currentTime: number) {
             requestAnimationFrame(animate);
-            
-            if (!currentTime) currentTime = performance.now();
-            const elapsed = currentTime - lastTime;
 
-            if (elapsed >= fpsInterval) {
-                lastTime = currentTime - (elapsed % fpsInterval);
+            const rawDt = currentTime - lastTime;
+            lastTime = currentTime;
+            if (rawDt <= 0 || rawDt > 1000) return;
+            const dt = Math.min(rawDt, 100);
 
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                ctx.save();
-                if (screenShake > 0) {
-                    const dx = (Math.random() - 0.5) * screenShake;
-                    const dy = (Math.random() - 0.5) * screenShake;
-                    ctx.translate(dx, dy);
-                    screenShake *= 0.8; // 衰减
-                    if (screenShake < 1) screenShake = 0;
-                }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                if (gameState === 'mainMenu') {
-                    drawMainMenuUI();
-                } else if (gameState === 'seedSelection') {
-                    drawSeedSelectionUI();
-                } else if (gameState === 'playing') {
-                    grids.forEach(grid => grid.draw());
-                    handleGameObjects();
-                    drawUI();
-                    handleGridClick();
-                    frame++;
-                } else if (gameState === 'paused') {
-                    grids.forEach(grid => grid.draw());
-                    plants.forEach(p => p.draw()); zombies.forEach(z => z.draw()); lawnmowers.forEach(lm => lm.draw());
-                    drawUI();
-                    drawPauseMenuUI();
-                } else if (gameState === 'gameOver') {
-                    grids.forEach(grid => grid.draw()); 
-                    plants.forEach(p => p.draw()); zombies.forEach(z => z.draw()); lawnmowers.forEach(lm => lm.draw());
-                    drawUI();
-                    drawEndGameUI();
-                }
-
-                ctx.restore();
-
-                if (mouse.clicked) mouse.clicked = false;
+            ctx.save();
+            if (screenShake > 0) {
+                const dx = (Math.random() - 0.5) * screenShake;
+                const dy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(dx, dy);
+                screenShake *= Math.pow(0.8, dt / 16.67);
+                if (screenShake < 1) screenShake = 0;
             }
+
+            if (gameState === 'mainMenu') {
+                drawMainMenuUI();
+            } else if (gameState === 'seedSelection') {
+                drawSeedSelectionUI();
+            } else if (gameState === 'playing') {
+                grids.forEach(grid => grid.draw());
+                handleGameObjects(dt);
+                drawUI();
+                handleGridClick();
+            } else if (gameState === 'paused') {
+                grids.forEach(grid => grid.draw());
+                plants.forEach(p => p.draw()); zombies.forEach(z => z.draw()); lawnmowers.forEach(lm => lm.draw());
+                drawUI();
+                drawPauseMenuUI();
+            } else if (gameState === 'gameOver') {
+                grids.forEach(grid => grid.draw());
+                plants.forEach(p => p.draw()); zombies.forEach(z => z.draw()); lawnmowers.forEach(lm => lm.draw());
+                drawUI();
+                drawEndGameUI();
+            }
+
+            ctx.restore();
+
+            if (mouse.clicked) mouse.clicked = false;
         }
 
         window.onload = function () {
+            lastTime = performance.now();
             requestAnimationFrame(animate);
         }
