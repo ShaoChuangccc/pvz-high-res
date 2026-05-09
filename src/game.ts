@@ -1195,7 +1195,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                 this.x = canvas.width; this.y = y; this.width = 50; this.height = 80;
                 this.typeCode = typeCode; // 1: normal, 2: cone, 3: bucket, 4: screen door
 
-                this.speed = Math.random() * 0.1 + 0.15;
+                this.speed = Math.random() * 0.13 + 0.20;
                 this.movement = this.speed;
 
                 const hpMap = { 1: 150, 2: 380, 3: 750, 4: 150 };
@@ -1286,7 +1286,7 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     }
                     zombiesToSpawn = zombiesToSpawnTotal;
 
-                    hugeWaveTimer = 3000; // 3秒大波次提示
+                    if (currentWave % 3 === 0) hugeWaveTimer = 3000;
                 }
             }
 
@@ -1302,9 +1302,19 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                     }
 
                     let type = 1;
-                    if (currentWave > 2) type = Math.random() < 0.7 ? 1 : 2;
-                    if (currentWave > 5) type = Math.random() < 0.5 ? 2 : (Math.random() < 0.5 ? 3 : 4);
-                    if (currentWave > 10) type = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 3 : 4);
+                    if (currentWave <= 3) {
+                        // 前3波：每波只有1个路障僵尸作为"预告"
+                        if (zombiesToSpawnTotal - zombiesToSpawn === 0) type = 2;
+                    } else if (currentWave <= 6) {
+                        // 4-6波：路障为主，偶有铁桶
+                        type = Math.random() < 0.6 ? 1 : (Math.random() < 0.7 ? 2 : 3);
+                    } else if (currentWave <= 10) {
+                        // 7-10波：铁桶铁门开始出现
+                        type = Math.random() < 0.3 ? 1 : (Math.random() < 0.5 ? 2 : (Math.random() < 0.5 ? 3 : 4));
+                    } else {
+                        // 10波以后：全是重装
+                        type = Math.random() < 0.2 ? 2 : (Math.random() < 0.5 ? 3 : 4);
+                    }
 
                     zombies.push(new Zombie(randomRow * cellSize + gridOffsetY, type));
                     zombiesToSpawn--;
@@ -1381,8 +1391,6 @@ const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
                         }
                         z.hp -= actualDamage;
                         playSound(shieldBlocked ? 'hit_shield' : 'hit');
-
-                        floatingTexts.push(new FloatingText(z.x + z.width / 2 + (Math.random() * 20 - 10), z.y + 20 + (Math.random() * 10 - 5), `-${b.damage}`, floatingColor));
                         if (b.type === 'snow' && !shieldBlocked) z.slowTimer = 3000; // 3秒减速
                         if (b.type === 'fire') z.slowTimer = 0;
                         if (z.hp <= 0 && !z.markedForDeletion) {
